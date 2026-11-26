@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Générateur de Reel/TikTok — ArtForge</title>
+<style>
+  :root{
+    --bg:#08080c; --panel:#111118; --panel2:#1a1a24; --line:#2a2a3a;
+    --ink:#f0f0ff; --mut:#8080a0; --acc:#ff0050; --acc2:#ff4d7a; --gold:#ffd700;
+    --ok:#00f2ea; --bad:#ff4444; --purple:#a855f7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
+  header{display:flex;align-items:center;gap:16px;padding:14px 24px;border-bottom:2px solid var(--acc);background:linear-gradient(180deg,#15080c,#08080c)}
+  header h1{font-size:22px;margin:0;letter-spacing:1px;color:var(--gold);font-weight:800}
+  header .sub{color:var(--mut);font-size:12px}
+  .tabs{display:flex;gap:4px;padding:10px 24px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+  .tab{padding:9px 18px;border:2px solid var(--line);background:var(--panel2);color:var(--mut);cursor:pointer;border-radius:6px 6px 0 0;font-size:13px;font-weight:700;letter-spacing:.5px}
+  .tab:hover{color:var(--ink);border-color:var(--acc)}
+  .tab.active{background:var(--acc);color:#fff;border-color:var(--acc)}
+  main{padding:22px;max-width:1500px;margin:0 auto}
+  .view{display:none}.view.active{display:block}
+  .grid{display:grid;grid-template-columns:380px 1fr;gap:22px}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:18px}
+  .card h3{margin:0 0 14px;font-size:14px;color:var(--gold);letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--line);padding-bottom:8px}
+  label{display:block;font-size:11px;color:var(--mut);margin:10px 0 4px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+  input,select,textarea{width:100%;background:#050508;border:1px solid var(--line);color:var(--ink);padding:10px 12px;border-radius:6px;font-size:13px;font-family:inherit}
+  textarea{resize:vertical;min-height:70px}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 2px rgba(255,0,80,.2)}
+  button{background:var(--acc);color:#fff;border:none;padding:10px 18px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:700;letter-spacing:.3px}
+  button:hover{background:var(--acc2)}
+  button.ghost{background:transparent;color:var(--acc2);border:1px solid var(--acc)}
+  button.ghost:hover{background:rgba(255,0,80,.1)}
+  button.danger{background:var(--bad)}
+  button.small{padding:6px 12px;font-size:11px;border-radius:4px}
+  button.cyan{background:var(--ok);color:#000}
+  button.cyan:hover{background:#33f5ee}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .row.grow > *{flex:1 1 auto}
+  .thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-top:12px}
+  .thumb{position:relative;background:#000;border:1px solid var(--line);border-radius:6px;overflow:hidden;aspect-ratio:9/16;display:flex;align-items:center;justify-content:center}
+  .thumb video,.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .thumb .fav{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.7);border:none;color:var(--gold);font-size:14px;cursor:pointer;padding:2px 6px;border-radius:4px}
+  .thumb .cap{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,rgba(0,0,0,.9),transparent);font-size:9px;padding:12px 6px 4px;color:#ddd;word-break:break-word;line-height:1.3}
+  .thumb .status-badge{position:absolute;top:4px;left:4px;font-size:8px;padding:2px 6px;border-radius:8px;font-weight:700;text-transform:uppercase}
+  .status-badge.pending{background:#f59e0b;color:#000}
+  .status-badge.completed{background:#10b981;color:#fff}
+  .status-badge.failed{background:#ef4444;color:#fff}
+  .status{font-size:12px;padding:8px 12px;border-radius:6px;background:var(--panel2);border:1px solid var(--line);color:var(--mut);margin-top:12px;white-space:pre-wrap;font-family:monospace;min-height:20px}
+  .status.ok{color:var(--ok);border-color:var(--ok);background:rgba(0,242,234,.06)}
+  .status.bad{color:var(--bad);border-color:var(--bad);background:rgba(255,68,68,.06)}
+  .status.warn{color:#f59e0b;border-color:#f59e0b;background:rgba(245,158,11,.06)}
+  .api-panel{position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:2px solid var(--acc);padding:12px 24px;z-index:100;transform:translateY(calc(100% - 40px));transition:transform .25s}
+  .api-panel.open{transform:translateY(0)}
+  .api-panel .head{display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-size:13px;color:var(--gold);font-weight:700}
+  .api-panel .body{margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:800px){.api-panel .body{grid-template-columns:1fr}}
+  .keys{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+  .keyrow{display:flex;gap:8px;align-items:center;font-size:11px;background:var(--panel2);padding:6px 10px;border-radius:4px;border:1px solid var(--line)}
+  .keyrow .mask{flex:1;color:var(--mut);font-family:monospace;overflow:hidden;text-overflow:ellipsis}
+  .keyrow .del{background:transparent;border:none;color:var(--bad);cursor:pointer;font-size:14px}
+  .badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(255,0,80,.2);color:var(--acc2);border:1px solid var(--acc);margin-left:6px;font-weight:700}
+  .hist{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+  .hitem{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:12px}
+  .hitem .meta{font-size:11px;color:var(--mut);display:flex;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+  .hitem .prompt{font-size:12px;color:var(--ink);margin-top:5px;line-height:1.4;padding:8px;background:#050508;border-radius:6px;border-left:3px solid var(--acc)}
+  .btnrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  .hint{font-size:11px;color:var(--mut);font-style:italic;margin-top:6px;line-height:1.4}
+  .empty{color:var(--mut);font-size:12px;text-align:center;padding:20px;font-style:italic}
+  .kpi{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .kpi .box{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:8px 12px;font-size:10px;color:var(--mut);text-transform:uppercase;font-weight:700}
+  .kpi .box b{color:var(--gold);font-size:16px;display:block}
+  .progress{height:6px;background:var(--panel2);border-radius:3px;overflow:hidden;margin-top:8px}
+  .progress > div{height:100%;background:linear-gradient(90deg,var(--acc),var(--gold));width:0%;transition:width .3s}
+  .switch{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mut);cursor:pointer;margin-top:10px;padding:8px;background:var(--panel2);border-radius:6px}
+  .switch input{width:auto;accent-color:var(--acc)}
+  .warn-box{background:rgba(245,158,11,.1);border:1px solid #f59e0b;border-radius:6px;padding:10px;font-size:11px;color:#f59e0b;margin-top:10px;line-height:1.5}
+  .video-preview{width:100%;max-width:320px;aspect-ratio:9/16;background:#000;border-radius:12px;border:2px solid var(--line);overflow:hidden;margin:0 auto;display:flex;align-items:center;justify-content:center}
+  .video-preview video{width:100%;height:100%;object-fit:contain}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎬 Reel/TikTok Forge</h1>
+  <span class="sub">ArtForge · vidéos courtes virales · Agnes Video</span>
+</header>
+
+<div class="tabs">
+  <button class="tab active" data-v="generate">Créer</button>
+  <button class="tab" data-v="queue">File d'attente</button>
+  <button class="tab" data-v="library">Ma bibliothèque</button>
+  <button class="tab" data-v="favorites">Favoris</button>
+</div>
+
+<main>
+
+  <!-- ============ CREATE ============ -->
+  <section class="view active" id="v-generate">
+    <div class="grid">
+      <div>
+        <div class="card">
+          <h3>Paramètres du Reel</h3>
+          <label>Type de contenu</label>
+          <select id="contentType">
+            <option value="hook">🎣 Hook viral (5s)</option>
+            <option value="story">📖 Mini-story (10s)</option>
+            <option value="product">🛍️ Produit / Pub (8s)</option>
+            <option value="aesthetic">✨ Esthétique / Mood (5s)</option>
+            <option value="tutorial">📚 Mini-tuto (12s)</option>
+            <option value="meme">😂 Mème animé (6s)</option>
+          </select>
+
+          <label>Description / prompt vidéo</label>
+          <textarea id="prompt" placeholder="Ex : un chat qui danse sur une table, lumière néon rose, caméra qui tourne autour..."></textarea>
+
+          <label>Image de référence (optionnel — img→txt ou img→vidéo)</label>
+          <input type="file" id="refFile" accept="image/*">
+          <div class="hint">Analyse l'image pour enrichir le prompt, ou utilise-la comme première frame.</div>
+          <button class="ghost small" id="btnAnalyze" style="margin-top:8px">🔍 Analyser la référence</button>
+
+          <div class="row grow" style="margin-top:14px">
+            <div><label>Durée</label>
+              <select id="duration">
+                <option value="5">5s</option>
+                <option value="8" selected>8s</option>
+                <option value="10">10s</option>
+                <option value="12">12s</option>
+              </select></div>
+            <div><label>Ratio</label>
+              <select id="ratio">
+                <option value="9:16" selected>9:16 (TikTok/Reels)</option>
+                <option value="3:4">3:4</option>
+                <option value="16:9">16:9</option>
+                <option value="1:1">1:1</option>
+              </select></div>
+            <div><label>Qualité</label>
+              <select id="quality">
+                <option value="720P" selected>720P (Flash gratuit)</option>
+                <option value="1080P">1080P (payant)</option>
+              </select></div>
+            <div><label>Générations</label><input type="number" id="count" value="1" min="1" max="4"></div>
+          </div>
+
+          <div class="switch">
+            <input type="checkbox" id="autoPoll" checked>
+            <span>Polling automatique (attendre la vidéo)</span>
+          </div>
+
+          <div class="warn-box">
+            ⚠️ <b>Limites connues</b> : le modèle Flash (gratuit) peut avoir des files d'attente. Si le ratio 9:16 pose problème de rotation, utilise le correctif automatique ci-dessous.
+          </div>
+          <div class="switch">
+            <input type="checkbox" id="fixRotation" checked>
+            <span>Correctif rotation 9:16 (Flash)</span>
+          </div>
+
+          <div class="btnrow" style="margin-top:16px">
+            <button class="cyan" id="btnGen">🎬 Générer le Reel</button>
+            <button class="ghost" id="btnStop">⏹ Stop</button>
+          </div>
+
+          <div class="progress"><div id="prog"></div></div>
+          <div class="status" id="status">Prêt.</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <h3>Résultats <span id="resCount" class="badge">0</span></h3>
+          <div class="thumbs" id="out"></div>
+        </div>
+        <div class="card">
+          <h3>Aperçu vidéo</h3>
+          <div class="video-preview" id="videoPreview">
+            <span style="color:var(--mut);font-size:12px">Aucune vidéo sélectionnée</span>
+          </div>
+          <div class="btnrow" style="justify-content:center;margin-top:10px">
+            <button class="ghost small" id="btnDownload">⬇ Télécharger</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ QUEUE ============ -->
+  <section class="view" id="v-queue">
+    <div class="card">
+      <h3>Tâches en cours <span id="queueCount" class="badge">0</span></h3>
+      <div class="hint">Les tâches vidéo sont asynchrones. Cette file montre les tâches en attente / en cours.</div>
+      <div id="queueList" style="margin-top:12px"></div>
+    </div>
+  </section>
+
+  <!-- ============ LIBRARY ============ -->
+  <section class="view" id="v-library">
+    <div class="card">
+      <h3>Historique <span id="histCount" class="badge">0</span></h3>
+      <div class="hist" id="hist"></div>
+    </div>
+  </section>
+
+  <!-- ============ FAVORITES ============ -->
+  <section class="view" id="v-favorites">
+    <div class="card">
+      <h3>Favoris</h3>
+      <div class="thumbs" id="favOut"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============ API PANEL ============ -->
+<div class="api-panel" id="apiPanel">
+  <div class="head" id="apiHead">🔑 AGNES API — clés et état <span id="apiBadge" class="badge">0 clé</span></div>
+  <div class="body">
+    <div>
+      <label>Ajouter une clé (une par ligne)</label>
+      <textarea id="apiInput" placeholder="sk-..."></textarea>
+      <div class="btnrow">
+        <button id="apiAdd">➕ Ajouter</button>
+        <button class="ghost" id="apiTest">Valider & tester</button>
+      </div>
+      <div class="status" id="apiStatus">Aucune clé.</div>
+    </div>
+    <div>
+      <label>Clés actives</label>
+      <div class="keys" id="keysList"></div>
+      <div class="kpi">
+        <div class="box"><b id="kpiKeys">0</b>clés</div>
+        <div class="box"><b id="kpiVids">0</b>vidéos</div>
+        <div class="box"><b id="kpiQueue">0</b>en file</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONFIG — Agnes Video 2.5 Flash (gratuit, 720P)
+// ============================================================
+const API_BASE = "https://apihub.agnes-ai.com/v1";
+const POLL_BASE = "https://apihub.agnes-ai.com/agnesapi";
+const MODEL_VIDEO = "agnes-video-2.5-flash";
+const MODEL_TEXT = "agnes-2.5-flash";
+const MODEL_VISION = "agnes-2.5-flash";
+
+// ============================================================
+// STATE
+// ============================================================
+const S = {
+  keys: JSON.parse(localStorage.getItem('rt_keys') || '[]'),
+  history: JSON.parse(localStorage.getItem('rt_hist') || '[]'),
+  favs: JSON.parse(localStorage.getItem('rt_favs') || '[]'),
+  queue: JSON.parse(localStorage.getItem('rt_queue') || '[]'),
+  running: false, stop: false,
+  keyIdx: 0, totalVids: 0,
+  currentVideo: null,
+};
+
+function saveAll(){
+  localStorage.setItem('rt_keys', JSON.stringify(S.keys));
+  localStorage.setItem('rt_hist', JSON.stringify(S.history.slice(0,100)));
+  localStorage.setItem('rt_favs', JSON.stringify(S.favs));
+  localStorage.setItem('rt_queue', JSON.stringify(S.queue));
+}
+
+function uid(){ return Math.random().toString(36).slice(2,10); }
+function esc(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function setStatus(id, msg, kind){
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'status' + (kind ? ' ' + kind : '');
+}
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+// ============================================================
+// TABS
+// ============================================================
+document.querySelectorAll('.tab').forEach(t => {
+  t.onclick = () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('v-' + t.dataset.v).classList.add('active');
+    if (t.dataset.v === 'library') renderHistory();
+    if (t.dataset.v === 'favorites') renderFavs();
+    if (t.dataset.v === 'queue') renderQueue();
+  };
+});
+
+// ============================================================
+// API KEYS
+// ============================================================
+const keyCooldowns = {};
+
+function pickKey(){
+  if (!S.keys.length) throw new Error('Aucune clé API.');
+  const now = Date.now();
+  for (let i = 0; i < S.keys.length; i++){
+    const k = S.keys[(S.keyIdx + i) % S.keys.length];
+    if (!keyCooldowns[k] || keyCooldowns[k] < now){
+      S.keyIdx = (S.keyIdx + i + 1) % S.keys.length;
+      return k;
+    }
+  }
+  const soonest = Math.min(...Object.values(keyCooldowns));
+  throw new Error(`Toutes les clés sont en cooldown. Réessaie dans ${Math.ceil((soonest - now)/1000)}s.`);
+}
+
+function renderKeys(){
+  const list = document.getElementById('keysList');
+  list.innerHTML = '';
+  S.keys.forEach((k,i) => {
+    const d = document.createElement('div');
+    d.className = 'keyrow';
+    d.innerHTML = `<span class="mask">${esc(mask(k))}</span><button class="del" data-i="${i}">✕</button>`;
+    list.appendChild(d);
+  });
+  if (!S.keys.length) list.innerHTML = '<div class="empty">Aucune clé.</div>';
+  document.getElementById('apiBadge').textContent = S.keys.length + ' clé' + (S.keys.length>1?'s':'');
+  document.getElementById('kpiKeys').textContent = S.keys.length;
+  document.getElementById('kpiVids').textContent = S.totalVids;
+  document.getElementById('kpiQueue').textContent = S.queue.filter(q => q.status === 'pending' || q.status === 'in_progress').length;
+  list.querySelectorAll('.del').forEach(b => b.onclick = () => {
+    S.keys.splice(+b.dataset.i,1); saveAll(); renderKeys();
+  });
+}
+function mask(k){ if (k.length<=12) return k; return k.slice(0,7)+'…'+k.slice(-4); }
+
+document.getElementById('apiAdd').onclick = () => {
+  const raw = document.getElementById('apiInput').value;
+  const arr = raw.split('\n').map(s => s.trim()).filter(s => s.startsWith('sk-'));
+  if (!arr.length) return setStatus('apiStatus','Aucune clé valide (sk-).','bad');
+  S.keys = [...new Set([...S.keys, ...arr])];
+  saveAll(); renderKeys();
+  document.getElementById('apiInput').value = '';
+  setStatus('apiStatus', arr.length + ' clé(s) ajoutée(s).','ok');
+};
+
+document.getElementById('apiTest').onclick = async () => {
+  if (!S.keys.length) return setStatus('apiStatus','Aucune clé.','bad');
+  setStatus('apiStatus','Test…','');
+  let ok = 0;
+  for (const k of S.keys){
+    try{ await ping(k); ok++; }catch(e){}
+  }
+  setStatus('apiStatus', ok + '/' + S.keys.length + ' valide(s).', ok?'ok':'bad');
+};
+
+async function ping(key){
+  const r = await fetch(API_BASE + '/models', { headers:{ 'Authorization':'Bearer '+key }});
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return true;
+}
+
+// ============================================================
+// API CALLS
+// ============================================================
+async function callText(sysUser){
+  const key = pickKey();
+  const r = await fetch(API_BASE + '/chat/completions', {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+key },
+    body: JSON.stringify({
+      model: MODEL_TEXT,
+      messages:[{ role:'system', content:'Tu es un scénariste de contenus courts viraux. Tu ne produis que le texte demandé.' },{ role:'user', content: sysUser }],
+      temperature:0.8
+    })
+  });
+  if (r.status === 429){ const ra = r.headers.get('Retry-After'); keyCooldowns[key] = Date.now() + (ra?parseInt(ra):60)*1000; throw new Error('429 cooldown'); }
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const j = await r.json();
+  return j.choices?.[0]?.message?.content || '';
+}
+
+async function callVision(dataUrl){
+  const key = pickKey();
+  const r = await fetch(API_BASE + '/chat/completions', {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+key },
+    body: JSON.stringify({
+      model: MODEL_VISION,
+      messages:[{
+        role:'user',
+        content:[
+          { type:'text', text:'Décris cette image pour un prompt vidéo court : sujet, action possible, ambiance, couleurs, style. Sois concis et évocateur.' },
+          { type:'image_url', image_url:{ url: dataUrl } }
+        ]
+      }],
+      temperature:0.4
+    })
+  });
+  if (r.status === 429){ const ra = r.headers.get('Retry-After'); keyCooldowns[key] = Date.now() + (ra?parseInt(ra):60)*1000; throw new Error('429 cooldown'); }
+  if (!r.ok) throw new Error('Vision HTTP ' + r.status);
+  const j = await r.json();
+  return j.choices?.[0]?.message?.content || '';
+}
+
+async function createVideoTask(prompt, opts){
+  const key = pickKey();
+  const body = {
+    model: MODEL_VIDEO,
+    prompt: prompt,
+    seconds: String(opts.duration),
+    mode: 'text',
+    size: '720P',
+    aspect_ratio: opts.ratio
+  };
+  const r = await fetch(API_BASE + '/videos', {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+key },
+    body: JSON.stringify(body)
+  });
+  if (r.status === 503){
+    const txt = await r.text();
+    if (txt.includes('video_queue_full')){
+      throw new Error('QUEUE_FULL');
+    }
+  }
+  if (r.status === 429){ const ra = r.headers.get('Retry-After'); keyCooldowns[key] = Date.now() + (ra?parseInt(ra):60)*1000; throw new Error('429 cooldown'); }
+  if (!r.ok) throw new Error('Création HTTP ' + r.status + ' — ' + (await r.text()).slice(0,200));
+  const j = await r.json();
+  return { videoId: j.video_id || j.id, taskId: j.task_id || j.id, raw: j };
+}
+
+async function pollVideo(videoId){
+  const key = pickKey();
+  const url = `${POLL_BASE}?video_id=${encodeURIComponent(videoId)}&model_name=${MODEL_VIDEO}`;
+  const r = await fetch(url, { headers:{ 'Authorization':'Bearer '+key }});
+  if (!r.ok) throw new Error('Poll HTTP ' + r.status);
+  return await r.json();
+}
+
+// ============================================================
+// GENERATION FLOW
+// ============================================================
+document.getElementById('btnAnalyze').onclick = async () => {
+  const f = document.getElementById('refFile').files[0];
+  if (!f) return setStatus('status','Choisis une image.','bad');
+  setStatus('status','Analyse…','');
+  try{
+    const dataUrl = await fileToDataUrl(f);
+    const desc = await callVision(dataUrl);
+    document.getElementById('prompt').value = (document.getElementById('prompt').value + ' ' + desc).trim();
+    setStatus('status','Référence injectée.','ok');
+  }catch(e){ setStatus('status','Erreur : ' + e.message,'bad'); }
+};
+
+function fileToDataUrl(file){
+  return new Promise((res,rej)=>{
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+document.getElementById('btnGen').onclick = generateAll;
+document.getElementById('btnStop').onclick = () => { S.stop = true; setStatus('status','Arrêt…','bad'); };
+
+async function generateAll(){
+  if (S.running) return;
+  if (!S.keys.length) return setStatus('status','Ajoute une clé API.','bad');
+
+  const prompt = document.getElementById('prompt').value.trim();
+  if (!prompt) return setStatus('status','Écris une description.','bad');
+
+  const duration = document.getElementById('duration').value;
+  const ratio = document.getElementById('ratio').value;
+  const count = +document.getElementById('count').value;
+  const autoPoll = document.getElementById('autoPoll').checked;
+  const fixRotation = document.getElementById('fixRotation').checked;
+
+  S.running = true; S.stop = false;
+  document.getElementById('out').innerHTML = '';
+  document.getElementById('prog').style.width = '0%';
+
+  const actualRatio = (fixRotation && ratio === '9:16') ? '3:4' : ratio;
+
+  setStatus('status', `Création de ${count} tâche(s) vidéo… (${actualRatio})`, '');
+
+  for (let i = 0; i < count; i++){
+    if (S.stop) break;
+    try{
+      const task = await createVideoTask(prompt, { duration, ratio: actualRatio });
+      const item = {
+        id: uid(),
+        videoId: task.videoId,
+        taskId: task.taskId,
+        prompt,
+        duration,
+        ratio: actualRatio,
+        status: 'pending',
+        url: null,
+        createdAt: Date.now(),
+        error: null
+      };
+      S.queue.push(item);
+      saveAll();
+      renderQueue();
+      addThumb(item, true);
+
+      if (autoPoll){
+        pollUntilDone(item);
+      }
+      setStatus('status', `Tâche ${i+1}/${count} créée : ${task.videoId}`, 'ok');
+    }catch(e){
+      if (e.message === 'QUEUE_FULL'){
+        setStatus('status', `File Agnes pleine. Réessaie dans 60s. (${i+1}/${count})`, 'warn');
+        await sleep(60000);
+        i--; // retry
+      } else {
+        setStatus('status', `Erreur création : ${e.message}`, 'bad');
+      }
+    }
+  }
+
+  S.running = false;
+  setStatus('status', `Terminé : ${S.queue.filter(q=>q.status==='completed').length} vidéo(s) prête(s).`, 'ok');
+  document.getElementById('prog').style.width = '100%';
+  renderKeys();
+}
+
+async function pollUntilDone(item){
+  let attempts = 0;
+  const maxAttempts = 60; // ~2 min
+  while (attempts < maxAttempts && !S.stop){
+    attempts++;
+    await sleep(2000);
+    try{
+      const j = await pollVideo(item.videoId);
+      item.status = j.status || 'in_progress';
+      if (j.status === 'completed' && j.url){
+        item.url = j.url;
+        item.status = 'completed';
+        S.totalVids++;
+        saveAll();
+        updateThumb(item);
+        showVideoPreview(j.url);
+        renderQueue();
+        setStatus('status', `Vidéo prête : ${item.videoId}`, 'ok');
+        return;
+      }
+      if (j.status === 'failed'){
+        item.status = 'failed';
+        item.error = j.error?.message || 'Échec';
+        saveAll();
+        updateThumb(item);
+        renderQueue();
+        setStatus('status', `Échec : ${item.error}`, 'bad');
+        return;
+      }
+      // update progress
+      document.getElementById('prog').style.width = (j.progress || 0) + '%';
+      setStatus('status', `${item.videoId} — ${j.status} (${j.progress || 0}%)`, '');
+    }catch(e){
+      // network error, continue
+    }
+  }
+  item.status = 'failed';
+  item.error = 'Timeout polling';
+  saveAll();
+  updateThumb(item);
+  renderQueue();
+}
+
+// ============================================================
+// THUMBS & PREVIEW
+// ============================================================
+function addThumb(item, isNew){
+  const out = document.getElementById('out');
+  const d = document.createElement('div');
+  d.className = 'thumb';
+  d.id = 'thumb-' + item.id;
+  d.innerHTML = `
+    <div class="status-badge ${item.status}">${item.status}</div>
+    <div class="ph" style="color:var(--mut);font-size:11px;text-align:center;padding:8px">En cours…<br>${esc(item.videoId?.slice(0,16) || '')}</div>
+    <button class="fav">☆</button>
+    <div class="cap">${esc(item.prompt.slice(0,80))}</div>
+  `;
+  d.onclick = (e) => {
+    if (e.target.classList.contains('fav')) return;
+    if (item.url) showVideoPreview(item.url);
+  };
+  d.querySelector('.fav').onclick = (e) => {
+    e.stopPropagation();
+    if (!item.url) return;
+    const exists = S.favs.find(f => f.url === item.url);
+    if (exists){ S.favs = S.favs.filter(f => f.url !== item.url); e.target.textContent = '☆'; }
+    else { S.favs.push({ url: item.url, prompt: item.prompt, date: Date.now() }); e.target.textContent = '★'; }
+    saveAll();
+  };
+  out.prepend(d);
+}
+
+function updateThumb(item){
+  const d = document.getElementById('thumb-' + item.id);
+  if (!d) return;
+  const badge = d.querySelector('.status-badge');
+  if (badge){ badge.className = 'status-badge ' + item.status; badge.textContent = item.status; }
+  if (item.url){
+    const ph = d.querySelector('.ph');
+    if (ph) ph.outerHTML = `<video src="${item.url}" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>`;
+  }
+  if (item.status === 'failed'){
+    const ph = d.querySelector('.ph');
+    if (ph) ph.innerHTML = `<span style="color:var(--bad)">Échec</span>`;
+  }
+}
+
+function showVideoPreview(url){
+  S.currentVideo = url;
+  const el = document.getElementById('videoPreview');
+  el.innerHTML = `<video src="${url}" controls autoplay loop></video>`;
+}
+
+document.getElementById('btnDownload').onclick = () => {
+  if (!S.currentVideo) return setStatus('status','Aucune vidéo sélectionnée.','bad');
+  const a = document.createElement('a');
+  a.href = S.currentVideo;
+  a.download = 'reel-' + Date.now() + '.mp4';
+  a.target = '_blank';
+  a.click();
+};
+
+// ============================================================
+// QUEUE
+// ============================================================
+function renderQueue(){
+  const el = document.getElementById('queueList');
+  el.innerHTML = '';
+  const active = S.queue.filter(q => q.status === 'pending' || q.status === 'in_progress');
+  document.getElementById('queueCount').textContent = active.length;
+  if (!S.queue.length) return el.innerHTML = '<div class="empty">Aucune tâche.</div>';
+  S.queue.slice().reverse().forEach(q => {
+    const d = document.createElement('div');
+    d.className = 'hitem';
+    d.innerHTML = `
+      <div class="meta">
+        <span class="status-badge ${q.status}" style="position:static">${q.status}</span>
+        <span>${esc(q.videoId?.slice(0,20) || '')}</span>
+        <span>${new Date(q.createdAt).toLocaleTimeString('fr-FR')}</span>
+      </div>
+      <div class="prompt">${esc(q.prompt)}</div>
+      ${q.error ? `<div style="color:var(--bad);font-size:11px;margin-top:4px">${esc(q.error)}</div>` : ''}
+      ${q.url ? `<video src="${q.url}" controls style="width:100%;max-width:240px;margin-top:8px;border-radius:6px"></video>` : ''}
+      <div class="btnrow">
+        <button class="ghost small" data-act="poll">↻ Vérifier</button>
+        <button class="danger small" data-act="del">🗑</button>
+      </div>
+    `;
+    d.querySelector('[data-act=poll]').onclick = () => { if (q.url) showVideoPreview(q.url); else pollUntilDone(q); };
+    d.querySelector('[data-act=del]').onclick = () => {
+      S.queue = S.queue.filter(x => x.id !== q.id);
+      saveAll(); renderQueue();
+    };
+    el.appendChild(d);
+  });
+}
+
+// ============================================================
+// HISTORY
+// ============================================================
+function renderHistory(){
+  const h = document.getElementById('hist');
+  h.innerHTML = '';
+  document.getElementById('histCount').textContent = S.history.length;
+  if (!S.history.length) return h.innerHTML = '<div class="empty">Aucune génération.</div>';
+  S.history.forEach(s => {
+    const d = document.createElement('div');
+    d.className = 'hitem';
+    const dt = new Date(s.date).toLocaleString('fr-FR');
+    d.innerHTML = `
+      <div class="meta"><span>📅 ${dt}</span><span>🎬 ${s.videos?.length || 0} vidéo(s)</span></div>
+      <div class="prompt">${esc(s.prompt || '')}</div>
+      <div class="thumbs" style="margin-top:8px"></div>
+    `;
+    const th = d.querySelector('.thumbs');
+    (s.videos || []).forEach(v => {
+      const t = document.createElement('div');
+      t.className = 'thumb';
+      t.innerHTML = `<video src="${v.url}" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>`;
+      t.onclick = () => showVideoPreview(v.url);
+      th.appendChild(t);
+    });
+    h.appendChild(d);
+  });
+}
+
+// ============================================================
+// FAVS
+// ============================================================
+function renderFavs(){
+  const out = document.getElementById('favOut');
+  out.innerHTML = '';
+  if (!S.favs.length) return out.innerHTML = '<div class="empty">Aucun favori.</div>';
+  S.favs.slice().reverse().forEach(f => {
+    const d = document.createElement('div');
+    d.className = 'thumb';
+    d.innerHTML = `<video src="${f.url}" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video><button class="fav">★</button><div class="cap">${esc(f.prompt?.slice(0,80) || '')}</div>`;
+    d.querySelector('.fav').onclick = () => {
+      S.favs = S.favs.filter(x => x.url !== f.url);
+      saveAll(); renderFavs();
+    };
+    d.onclick = (e) => { if (e.target.classList.contains('fav')) return; showVideoPreview(f.url); };
+    out.appendChild(d);
+  });
+}
+
+// ============================================================
+// API PANEL
+// ============================================================
+document.getElementById('apiHead').onclick = () => {
+  document.getElementById('apiPanel').classList.toggle('open');
+};
+
+// ============================================================
+// INIT
+// ============================================================
+renderKeys();
+renderQueue();
+setStatus('apiStatus', S.keys.length ? S.keys.length + ' clé(s).' : 'Aucune clé.', S.keys.length?'ok':'');
+</script>
+</body>
+</html>
